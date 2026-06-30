@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Runtime-generated uploads (bundled seed data is committed)
+uploads/invoices/
+local_db_dump.sql

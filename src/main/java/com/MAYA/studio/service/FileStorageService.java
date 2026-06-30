@@ -16,9 +16,15 @@ public class FileStorageService {
     private String uploadDir;
 
     public String uploadFile(MultipartFile file) {
+        return uploadFile(file, null);
+    }
+
+    public String uploadFile(MultipartFile file, String subfolder) {
 
         try {
-            Path uploadPath = Paths.get(uploadDir);
+            Path uploadPath = subfolder == null || subfolder.isBlank()
+                    ? Paths.get(uploadDir)
+                    : Paths.get(uploadDir, subfolder);
 
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
@@ -46,7 +52,10 @@ public class FileStorageService {
                     StandardCopyOption.REPLACE_EXISTING
             );
 
-            return "/static/uploads/" + filename;
+            String urlPath = subfolder == null || subfolder.isBlank()
+                    ? "/uploads/" + filename
+                    : "/uploads/" + subfolder + "/" + filename;
+            return urlPath;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to upload file", e);

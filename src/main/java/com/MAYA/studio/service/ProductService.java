@@ -134,7 +134,7 @@ public class ProductService {
     ) {
 
 //        String imageUrl = fileStorageService.uploadFile(image);
-        String imageUrl = fileStorageService.uploadFile(image);
+        String imageUrl = fileStorageService.uploadFile(image, "products");
         Product product = productMapper.toEntity(request);
         product.setImages(List.of(imageUrl));
         Product savedProduct = productRepository.save(product);
@@ -192,7 +192,7 @@ public class ProductService {
         if (image != null && !image.isEmpty()) {
 
             String imageUrl =
-                    fileStorageService.uploadFile(image);
+                    fileStorageService.uploadFile(image, "products");
 
             product.setImages(
                     List.of(imageUrl)

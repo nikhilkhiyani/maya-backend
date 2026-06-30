@@ -15,6 +15,13 @@ if printf '%s' "$DATABASE_URL" | grep -qE '^postgres(ql)?://'; then
   export DATABASE_URL="jdbc:postgresql://${DB_HOST_PORT_DB}"
 fi
 
-mkdir -p "${FILE_UPLOAD_BASE:-/app/uploads}/products"
+UPLOAD_BASE="${FILE_UPLOAD_BASE:-/app/uploads}"
+mkdir -p "${UPLOAD_BASE}/products" "${UPLOAD_BASE}/categories"
+
+# Seed bundled uploads onto persistent disk when empty (Render disk mount)
+if [ -d /app/bundled-uploads ] && [ -z "$(ls -A "${UPLOAD_BASE}/products" 2>/dev/null)" ]; then
+  echo "Seeding uploads from bundled image to ${UPLOAD_BASE}"
+  cp -R /app/bundled-uploads/. "${UPLOAD_BASE}/"
+fi
 
 exec java -jar app.jar

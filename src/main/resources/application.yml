@@ -60,7 +60,7 @@ logging:
     org.hibernate.SQL: WARN
 
 file:
-  upload-base: ${FILE_UPLOAD_BASE:/Users/nikhilkhiyani/Desktop/jiya/uploads}
+  upload-base: ${FILE_UPLOAD_BASE:./uploads}
 
 app:
   name: MAYA

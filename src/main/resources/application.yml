@@ -1,0 +1,85 @@
+spring:
+  application:
+    name: MAYA-studio
+  
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/MAYA_db}
+    username: ${DATABASE_USERNAME:nikhil}
+    password: ${DATABASE_PASSWORD:nikhil}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+logging:
+  level:
+    com.MAYA.studio: INFO
+    org.hibernate.SQL: WARN
+
+file:
+  upload-base: ${FILE_UPLOAD_BASE:/Users/nikhilkhiyani/Desktop/jiya/uploads}
+
+app:
+  name: MAYA
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  exchange:
+    window-days: ${EXCHANGE_WINDOW_DAYS:7}
+  payment:
+    qr-image-url: ${PAYMENT_QR_IMAGE_URL:/uploads/IMG_4459.JPG}
+    timeout-minutes: ${PAYMENT_TIMEOUT_MINUTES:15}
+    webhook-secret: ${PAYMENT_WEBHOOK_SECRET:}
+  mail:
+    from: ${MAIL_FROM:noreply@maya.com}
+    enabled: ${MAIL_ENABLED:false}
+    admin-email: ${MAIL_ADMIN_EMAIL:admin@maya.com}
+
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID:}
+  key-secret: ${RAZORPAY_KEY_SECRET:}
+  enabled: ${RAZORPAY_ENABLED:false}
+
+cors:
+  allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3001}

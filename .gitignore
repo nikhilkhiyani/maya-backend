@@ -35,3 +35,8 @@ build/
 # Runtime-generated uploads (bundled seed data is committed)
 uploads/invoices/
 local_db_dump.sql
+
+# Local secrets
+.env
+*.env
+!.env.example

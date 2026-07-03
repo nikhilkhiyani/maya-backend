@@ -5,6 +5,8 @@ import com.MAYA.studio.dto.PaymentStatusResponse;
 import com.MAYA.studio.dto.PaymentVerifyRequest;
 import com.MAYA.studio.dto.PaymentWebhookRequest;
 import com.MAYA.studio.dto.RazorpayOrderResponse;
+import com.MAYA.studio.dto.RazorpaySessionResponse;
+import com.MAYA.studio.dto.RazorpaySessionVerifyRequest;
 import com.MAYA.studio.service.PaymentService;
 import com.MAYA.studio.service.RazorpayService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -65,6 +67,32 @@ public class PaymentController {
     @PostMapping("/webhook")
     public ResponseEntity<PaymentResponse> paymentWebhook(@Valid @RequestBody PaymentWebhookRequest request) {
         return ResponseEntity.ok(paymentService.processWebhook(request));
+    }
+
+    @PostMapping("/razorpay/webhook")
+    public ResponseEntity<Void> razorpayWebhook(
+            @RequestBody String rawBody,
+            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature) {
+        paymentService.handleRazorpayWebhook(rawBody, signature);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/razorpay/session/{checkoutSessionId}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<RazorpaySessionResponse> createRazorpaySession(@PathVariable UUID checkoutSessionId) {
+        return ResponseEntity.ok(paymentService.createRazorpaySessionOrder(checkoutSessionId));
+    }
+
+    @PostMapping("/razorpay/session/verify")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<PaymentResponse> verifyRazorpaySession(@Valid @RequestBody RazorpaySessionVerifyRequest request) {
+        return ResponseEntity.ok(paymentService.verifyRazorpaySessionPayment(
+                request.getPaymentId(),
+                request.getRazorpayOrderId(),
+                request.getRazorpayPaymentId(),
+                request.getRazorpaySignature()));
     }
 
     @PostMapping("/razorpay/create/{orderId}")

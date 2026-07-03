@@ -1,5 +1,7 @@
 package com.MAYA.studio.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,8 +48,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
+        } catch (ExpiredJwtException e) {
+            // Expired tokens are a normal, expected client condition (e.g. a stale
+            // session in the browser). Let the request continue unauthenticated so
+            // Spring Security can return 401 and the client can re-login.
+            logger.debug("Rejected expired JWT: " + e.getMessage());
+        } catch (JwtException | IllegalArgumentException e) {
+            // Malformed / tampered / unsupported token — also a client-side issue.
+            logger.debug("Rejected invalid JWT: " + e.getMessage());
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e);
+            // Anything unexpected is a genuine server-side problem worth surfacing.
+            logger.error("Unexpected error during JWT authentication", e);
         }
         
         filterChain.doFilter(request, response);

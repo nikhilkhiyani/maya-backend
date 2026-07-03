@@ -3,6 +3,7 @@ package com.MAYA.studio.service;
 import com.MAYA.studio.dto.PaymentResponse;
 import com.MAYA.studio.dto.PaymentStatusResponse;
 import com.MAYA.studio.dto.PaymentWebhookRequest;
+import com.MAYA.studio.dto.RazorpaySessionResponse;
 import com.MAYA.studio.entity.*;
 import com.MAYA.studio.exception.BadRequestException;
 import com.MAYA.studio.exception.ResourceNotFoundException;
@@ -33,6 +34,7 @@ public class PaymentService {
     private final OrderService orderService;
     private final EmailService emailService;
     private final AuditService auditService;
+    private final RazorpayService razorpayService;
 
     @Value("${app.payment.qr-image-url:/uploads/payment-qr.png}")
     private String qrImageUrl;
@@ -107,6 +109,157 @@ public class PaymentService {
                 "Amount: " + payment.getAmount());
 
         return toResponse(payment);
+    }
+
+    /**
+     * Creates a Razorpay order for a checkout session and a matching PENDING payment row.
+     * The domain Order is intentionally NOT created here — only after the signature is verified.
+     */
+    @Transactional
+    public RazorpaySessionResponse createRazorpaySessionOrder(UUID checkoutSessionId) {
+        User user = getCurrentUser();
+        CheckoutSession session = checkoutSessionRepository.findByIdAndUser(checkoutSessionId, user)
+                .orElseThrow(() -> new ResourceNotFoundException("Checkout session not found"));
+
+        if (session.getStatus() == CheckoutSession.SessionStatus.COMPLETED) {
+            throw new BadRequestException("Checkout session already completed");
+        }
+        if (session.getExpiresAt().isBefore(LocalDateTime.now())) {
+            session.setStatus(CheckoutSession.SessionStatus.EXPIRED);
+            checkoutSessionRepository.save(session);
+            throw new BadRequestException("Checkout session has expired");
+        }
+        if (session.getPaymentMethod() != Payment.PaymentMethod.RAZORPAY) {
+            throw new BadRequestException("This checkout session is not a Razorpay payment");
+        }
+
+        Payment payment = paymentRepository.findTopByCheckoutSessionIdOrderByCreatedAtDesc(checkoutSessionId)
+                .orElse(null);
+
+        // Reuse an existing pending Razorpay order for this session; otherwise create a fresh one.
+        if (payment == null
+                || payment.getStatus() != Payment.PaymentStatus.PENDING
+                || payment.getRazorpayOrderId() == null
+                || isExpired(payment)) {
+            String razorpayOrderId = razorpayService.createApiOrder(
+                    session.getTotalAmount(), "s_" + session.getId());
+
+            payment = Payment.builder()
+                    .checkoutSession(session)
+                    .method(Payment.PaymentMethod.RAZORPAY)
+                    .provider(Payment.PaymentProvider.RAZORPAY)
+                    .amount(session.getTotalAmount())
+                    .currency("INR")
+                    .status(Payment.PaymentStatus.PENDING)
+                    .verificationStatus(Payment.VerificationStatus.UNVERIFIED)
+                    .razorpayOrderId(razorpayOrderId)
+                    .expiresAt(LocalDateTime.now().plusMinutes(paymentTimeoutMinutes))
+                    .build();
+            payment = paymentRepository.save(payment);
+            addLog(payment, "PAYMENT_INITIATED", "Razorpay order created: " + razorpayOrderId, user.getEmail());
+        }
+
+        session.setStatus(CheckoutSession.SessionStatus.PAYMENT_PENDING);
+        checkoutSessionRepository.save(session);
+
+        return RazorpaySessionResponse.builder()
+                .paymentId(payment.getId())
+                .checkoutSessionId(session.getId())
+                .razorpayOrderId(payment.getRazorpayOrderId())
+                .razorpayKeyId(razorpayService.getKeyId())
+                .amount(payment.getAmount())
+                .amountInPaise(razorpayService.toPaise(payment.getAmount()))
+                .currency(payment.getCurrency())
+                .customerName(session.getShippingFullName())
+                .customerEmail(session.getEmail() != null ? session.getEmail() : user.getEmail())
+                .customerContact(session.getShippingPhone())
+                .build();
+    }
+
+    /**
+     * Verifies the Razorpay signature for a session payment and, on success, completes it
+     * (creates the order, clears the cart, sends email) via the shared success path.
+     */
+    @Transactional
+    public PaymentResponse verifyRazorpaySessionPayment(UUID paymentId, String razorpayOrderId,
+                                                        String razorpayPaymentId, String razorpaySignature) {
+        Payment payment = getPaymentForUser(paymentId);
+
+        if (payment.getStatus() == Payment.PaymentStatus.SUCCESS) {
+            return toResponse(payment);
+        }
+        if (payment.getRazorpayOrderId() == null || !payment.getRazorpayOrderId().equals(razorpayOrderId)) {
+            throw new BadRequestException("Razorpay order mismatch for this payment");
+        }
+        if (!razorpayService.verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)) {
+            markPaymentFailed(payment, "Invalid Razorpay signature", "razorpay");
+            throw new BadRequestException("Payment verification failed");
+        }
+
+        payment.setRazorpayPaymentId(razorpayPaymentId);
+        payment.setRazorpaySignature(razorpaySignature);
+        payment.setUpiReference(razorpayPaymentId);
+        paymentRepository.save(payment);
+
+        return completePaymentSuccess(payment, razorpayPaymentId, "razorpay");
+    }
+
+    /**
+     * Server-to-server Razorpay webhook. This is the source of truth for order creation:
+     * even if the customer closes the browser after paying, this guarantees the order is
+     * created. Idempotent — replays and duplicate events are safely ignored.
+     */
+    @Transactional
+    public void handleRazorpayWebhook(String rawBody, String signature) {
+        if (!razorpayService.verifyWebhookSignature(rawBody, signature)) {
+            throw new BadRequestException("Invalid webhook signature");
+        }
+
+        tools.jackson.databind.JsonNode root;
+        try {
+            root = new tools.jackson.databind.ObjectMapper().readTree(rawBody);
+        } catch (Exception e) {
+            throw new BadRequestException("Malformed webhook payload");
+        }
+
+        String event = root.path("event").asText("");
+        tools.jackson.databind.JsonNode paymentEntity = root.path("payload").path("payment").path("entity");
+        String razorpayOrderId = textOrNull(paymentEntity.path("order_id"));
+        String razorpayPaymentId = textOrNull(paymentEntity.path("id"));
+
+        if (razorpayOrderId == null) {
+            return;
+        }
+
+        Payment payment = paymentRepository.findByRazorpayOrderId(razorpayOrderId).orElse(null);
+        if (payment == null) {
+            return;
+        }
+
+        switch (event) {
+            case "payment.captured", "order.paid" -> {
+                if (payment.getStatus() != Payment.PaymentStatus.SUCCESS
+                        && payment.getCheckoutSession() != null) {
+                    payment.setRazorpayPaymentId(razorpayPaymentId);
+                    payment.setUpiReference(razorpayPaymentId);
+                    paymentRepository.save(payment);
+                    completePaymentSuccess(payment, razorpayPaymentId, "razorpay-webhook");
+                }
+            }
+            case "payment.failed" -> {
+                if (payment.getStatus() == Payment.PaymentStatus.PENDING) {
+                    String reason = textOrNull(paymentEntity.path("error_description"));
+                    markPaymentFailed(payment, reason != null ? reason : "Payment failed at gateway", "razorpay-webhook");
+                }
+            }
+            default -> {
+                // Other events (refunds, etc.) are not handled here.
+            }
+        }
+    }
+
+    private String textOrNull(tools.jackson.databind.JsonNode node) {
+        return node == null || node.isMissingNode() || node.isNull() ? null : node.asText();
     }
 
     @Transactional

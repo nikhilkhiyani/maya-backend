@@ -53,6 +53,7 @@ public class SecurityConfig {
                     "/api/banners/**",
                     "/api/orders/track/**",
                     "/api/payments/webhook",
+                    "/api/payments/razorpay/webhook",
                     "/api/products/*/reviews",
                     "/api/newsletter/**",
                     "/swagger-ui/**",

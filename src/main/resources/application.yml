@@ -1,6 +1,11 @@
 spring:
   application:
     name: MAYA-studio
+
+  # Load a local .env (KEY=VALUE) from the working directory if present.
+  # OS/Docker environment variables still take precedence over this file.
+  config:
+    import: optional:file:.env[.properties]
   
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/MAYA_db}
@@ -80,6 +85,7 @@ razorpay:
   key-id: ${RAZORPAY_KEY_ID:}
   key-secret: ${RAZORPAY_KEY_SECRET:}
   enabled: ${RAZORPAY_ENABLED:false}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
 
 cors:
   allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3001}

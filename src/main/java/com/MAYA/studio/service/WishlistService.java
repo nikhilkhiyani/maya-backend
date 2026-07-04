@@ -31,8 +31,8 @@ public class WishlistService {
     
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
-        return userRepository.findByEmail(email)
+        String authUsername = authentication.getName();
+        return userRepository.findByEmailOrPhone(authUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
     

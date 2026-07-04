@@ -39,7 +39,7 @@ public class ExchangeService {
     private int exchangeWindowDays;
 
     private User getCurrentUser() {
-        return userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+        return userRepository.findByEmailOrPhone(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 

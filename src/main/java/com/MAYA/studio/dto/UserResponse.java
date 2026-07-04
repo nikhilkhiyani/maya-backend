@@ -17,6 +17,8 @@ public class UserResponse {
     private UUID id;
     private String name;
     private String email;
+    private String phone;
     private User.Role role;
+    private User.AuthProvider authProvider;
     private LocalDateTime createdAt;
 }

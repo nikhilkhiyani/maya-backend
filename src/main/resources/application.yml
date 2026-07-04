@@ -89,3 +89,6 @@ razorpay:
 
 cors:
   allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3001}
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID:}

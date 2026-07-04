@@ -8,11 +8,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthRequest {
+public class GoogleAuthRequest {
 
-    @NotBlank(message = "Email or phone number is required")
-    private String identifier;
-
-    @NotBlank(message = "Password is required")
-    private String password;
+    @NotBlank(message = "Google ID token is required")
+    private String idToken;
 }

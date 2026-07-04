@@ -30,7 +30,7 @@ public class ReviewService {
     private final AuditService auditService;
 
     private User getCurrentUser() {
-        return userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+        return userRepository.findByEmailOrPhone(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 

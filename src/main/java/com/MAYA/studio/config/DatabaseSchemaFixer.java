@@ -16,9 +16,32 @@ public class DatabaseSchemaFixer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        fixUsersAuthColumns();
         fixOrdersStatusConstraint();
         fixProductsCategoryConstraint();
         fixCartSizeConstraint();
+    }
+
+    private void fixUsersAuthColumns() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(255)");
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255)");
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(255)");
+            jdbcTemplate.update("UPDATE users SET auth_provider = 'LOCAL' WHERE auth_provider IS NULL");
+            jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN auth_provider SET DEFAULT 'LOCAL'");
+            jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN auth_provider SET NOT NULL");
+            jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN email DROP NOT NULL");
+            jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN password DROP NOT NULL");
+            jdbcTemplate.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS uk_users_phone ON users(phone) WHERE phone IS NOT NULL
+                """);
+            jdbcTemplate.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS uk_users_google_id ON users(google_id) WHERE google_id IS NOT NULL
+                """);
+            log.info("Users auth columns verified");
+        } catch (Exception e) {
+            log.warn("Could not update users auth columns: {}", e.getMessage());
+        }
     }
 
     private void fixCartSizeConstraint() {

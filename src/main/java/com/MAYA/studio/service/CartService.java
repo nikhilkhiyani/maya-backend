@@ -36,11 +36,16 @@ public class CartService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
     
+    private String normalizeSize(String size) {
+        return size == null ? "" : size.trim();
+    }
+
     @Transactional
-    public CartResponse addToCart(UUID productId, Integer quantity) {
+    public CartResponse addToCart(UUID productId, Integer quantity, String size) {
         User user = getCurrentUser();
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
+        String normalizedSize = normalizeSize(size);
         
         if (quantity <= 0) {
             throw new BadRequestException("Quantity must be positive");
@@ -50,10 +55,11 @@ public class CartService {
             throw new BadRequestException("Insufficient stock");
         }
         
-        Cart cart = cartRepository.findByUserAndProduct(user, product)
+        Cart cart = cartRepository.findByUserAndProductAndSize(user, product, normalizedSize)
                 .orElse(Cart.builder()
                         .user(user)
                         .product(product)
+                        .size(normalizedSize)
                         .quantity(0)
                         .build());
         
@@ -63,12 +69,13 @@ public class CartService {
     }
     
     @Transactional
-    public CartResponse updateCartQuantity(UUID productId, Integer quantity) {
+    public CartResponse updateCartQuantity(UUID productId, Integer quantity, String size) {
         User user = getCurrentUser();
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
+        String normalizedSize = normalizeSize(size);
         
-        Cart cart = cartRepository.findByUserAndProduct(user, product)
+        Cart cart = cartRepository.findByUserAndProductAndSize(user, product, normalizedSize)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
         
         if (quantity <= 0) {
@@ -85,12 +92,12 @@ public class CartService {
     }
     
     @Transactional
-    public void removeFromCart(UUID productId) {
+    public void removeFromCart(UUID productId, String size) {
         User user = getCurrentUser();
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
         
-        cartRepository.deleteByUserAndProduct(user, product);
+        cartRepository.deleteByUserAndProductAndSize(user, product, normalizeSize(size));
     }
     
     @Transactional(readOnly = true)

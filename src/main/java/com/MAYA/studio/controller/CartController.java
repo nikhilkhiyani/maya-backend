@@ -27,8 +27,9 @@ public class CartController {
     @Operation(summary = "Add item to cart")
     public ResponseEntity<CartResponse> addToCart(
             @RequestParam UUID productId,
-            @RequestParam(defaultValue = "1") Integer quantity) {
-        return ResponseEntity.ok(cartService.addToCart(productId, quantity));
+            @RequestParam(defaultValue = "1") Integer quantity,
+            @RequestParam(required = false) String size) {
+        return ResponseEntity.ok(cartService.addToCart(productId, quantity, size));
     }
     
     @PutMapping
@@ -36,15 +37,18 @@ public class CartController {
     @Operation(summary = "Update cart item quantity")
     public ResponseEntity<CartResponse> updateCartQuantity(
             @RequestParam UUID productId,
-            @RequestParam Integer quantity) {
-        return ResponseEntity.ok(cartService.updateCartQuantity(productId, quantity));
+            @RequestParam Integer quantity,
+            @RequestParam(required = false) String size) {
+        return ResponseEntity.ok(cartService.updateCartQuantity(productId, quantity, size));
     }
     
     @DeleteMapping
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @Operation(summary = "Remove item from cart")
-    public ResponseEntity<Void> removeFromCart(@RequestParam UUID productId) {
-        cartService.removeFromCart(productId);
+    public ResponseEntity<Void> removeFromCart(
+            @RequestParam UUID productId,
+            @RequestParam(required = false) String size) {
+        cartService.removeFromCart(productId, size);
         return ResponseEntity.noContent().build();
     }
     

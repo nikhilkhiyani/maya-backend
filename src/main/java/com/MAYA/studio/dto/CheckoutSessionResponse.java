@@ -54,6 +54,7 @@ public class CheckoutSessionResponse {
         private String productSlug;
         private String productImage;
         private Integer quantity;
+        private String size;
         private BigDecimal unitPrice;
         private BigDecimal lineTotal;
     }

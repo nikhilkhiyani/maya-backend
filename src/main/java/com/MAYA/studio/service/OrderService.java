@@ -127,6 +127,7 @@ public class OrderService {
                     .order(order)
                     .product(product)
                     .quantity(sessionItem.getQuantity())
+                    .size(sessionItem.getSize())
                     .price(sessionItem.getUnitPrice())
                     .build());
             product.setStock(product.getStock() - sessionItem.getQuantity());
@@ -172,7 +173,7 @@ public class OrderService {
         List<OrderRequest.OrderItemRequest> orderItems = request.getItems();
         if (Boolean.TRUE.equals(request.getFromCart())) {
             orderItems = cartRepository.findByUser(user).stream()
-                    .map(c -> new OrderRequest.OrderItemRequest(c.getProduct().getId(), c.getQuantity()))
+                    .map(c -> new OrderRequest.OrderItemRequest(c.getProduct().getId(), c.getQuantity(), c.getSize()))
                     .collect(Collectors.toList());
         }
 
@@ -181,7 +182,7 @@ public class OrderService {
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
             BigDecimal price = product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice();
             subtotal = subtotal.add(price.multiply(BigDecimal.valueOf(itemRequest.getQuantity())));
-            items.add(CheckoutSessionItem.builder().product(product).quantity(itemRequest.getQuantity()).unitPrice(price).build());
+            items.add(CheckoutSessionItem.builder().product(product).quantity(itemRequest.getQuantity()).size(itemRequest.getSize()).unitPrice(price).build());
         }
 
         BigDecimal shipping = subtotal.compareTo(FREE_SHIPPING_THRESHOLD) >= 0 ? BigDecimal.ZERO : SHIPPING_COST;

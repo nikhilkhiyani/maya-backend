@@ -19,6 +19,7 @@ public class ProductRequest {
     private BigDecimal discountPrice;
     private Integer stock;
     private List<String> images;
+    private List<String> availableSizes;
     private Boolean isReadyToShip;
     private String slug;
     private String subcategory;

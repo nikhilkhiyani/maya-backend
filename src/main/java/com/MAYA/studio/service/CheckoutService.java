@@ -138,6 +138,7 @@ public class CheckoutService {
             items.add(CheckoutSessionItem.builder()
                     .product(product)
                     .quantity(cart.getQuantity())
+                    .size(cart.getSize())
                     .unitPrice(price)
                     .build());
         }
@@ -183,6 +184,7 @@ public class CheckoutService {
                         .productSlug(item.getProduct().getSlug())
                         .productImage(item.getProduct().getImages().isEmpty() ? null : item.getProduct().getImages().get(0))
                         .quantity(item.getQuantity())
+                        .size(item.getSize())
                         .unitPrice(item.getUnitPrice())
                         .lineTotal(item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                         .build()).collect(Collectors.toList()))

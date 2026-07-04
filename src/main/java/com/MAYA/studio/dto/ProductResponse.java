@@ -23,6 +23,7 @@ public class ProductResponse {
     private BigDecimal discountPrice;
     private Integer stock;
     private List<String> images;
+    private List<String> availableSizes;
     private Boolean isReadyToShip;
     private BigDecimal rating;
     private LocalDateTime createdAt;

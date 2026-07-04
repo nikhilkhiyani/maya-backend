@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "cart", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "product_id"})
+    @UniqueConstraint(name = "uk_cart_user_product_size", columnNames = {"user_id", "product_id", "size"})
 })
 @Getter
 @Setter
@@ -34,6 +34,10 @@ public class Cart {
     @Column(nullable = false)
     @Builder.Default
     private Integer quantity = 1;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private String size = "";
     
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

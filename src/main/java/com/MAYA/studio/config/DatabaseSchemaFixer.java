@@ -18,6 +18,31 @@ public class DatabaseSchemaFixer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         fixOrdersStatusConstraint();
         fixProductsCategoryConstraint();
+        fixCartSizeConstraint();
+    }
+
+    private void fixCartSizeConstraint() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE cart ADD COLUMN IF NOT EXISTS size VARCHAR(255)");
+            jdbcTemplate.update("UPDATE cart SET size = '' WHERE size IS NULL");
+            jdbcTemplate.execute("ALTER TABLE cart ALTER COLUMN size SET DEFAULT ''");
+            // Drop any existing unique constraints on cart (e.g. legacy user_id+product_id) so the
+            // same product can be added in multiple sizes.
+            jdbcTemplate.execute("""
+                DO $$
+                DECLARE r record;
+                BEGIN
+                  FOR r IN SELECT conname FROM pg_constraint
+                           WHERE conrelid = 'cart'::regclass AND contype = 'u' LOOP
+                    EXECUTE 'ALTER TABLE cart DROP CONSTRAINT ' || quote_ident(r.conname);
+                  END LOOP;
+                END $$;
+                """);
+            jdbcTemplate.execute("ALTER TABLE cart ADD CONSTRAINT uk_cart_user_product_size UNIQUE (user_id, product_id, size)");
+            log.info("Cart size column and unique constraint verified");
+        } catch (Exception e) {
+            log.warn("Could not update cart size constraint: {}", e.getMessage());
+        }
     }
 
     private void fixOrdersStatusConstraint() {

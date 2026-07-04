@@ -62,6 +62,7 @@ public class OrderResponse {
         private UUID id;
         private ProductResponse product;
         private Integer quantity;
+        private String size;
         private BigDecimal price;
     }
 }

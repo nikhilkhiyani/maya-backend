@@ -81,6 +81,9 @@ public class ProductService {
         if (request.getImages() != null && !request.getImages().isEmpty()) {
             product.setImages(request.getImages());
         }
+        if (request.getAvailableSizes() != null) {
+            product.setAvailableSizes(request.getAvailableSizes());
+        }
         if (product.getSlug() == null || product.getSlug().isBlank()) {
             product.setSlug(product.getName().toLowerCase().replaceAll("\\s+", "-"));
         }
@@ -103,6 +106,9 @@ public class ProductService {
         product.setStock(request.getStock());
         if (request.getImages() != null) {
             product.setImages(request.getImages());
+        }
+        if (request.getAvailableSizes() != null) {
+            product.setAvailableSizes(request.getAvailableSizes());
         }
         product.setIsReadyToShip(request.getIsReadyToShip());
         if (request.getSlug() != null && !request.getSlug().isBlank()) {

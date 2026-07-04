@@ -46,6 +46,12 @@ public class Product {
     @Column(name = "image_url")
     @Builder.Default
     private List<String> images = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "product_sizes", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "size")
+    @Builder.Default
+    private List<String> availableSizes = new ArrayList<>();
     
     @Column(nullable = false)
     @Builder.Default
